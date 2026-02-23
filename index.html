@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Memory Detective ❤️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;600&family=Caveat:wght@700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --pink: #ff4d6d; --accent: #ff85a1; --glass: rgba(255, 255, 255, 0.12); }
+        * { box-sizing: border-box; font-family: 'Prompt', sans-serif; }
+        body { margin: 0; padding: 0; height: 100vh; background: radial-gradient(circle at center, #2d0b1e 0%, #000000 100%); overflow: hidden; display: flex; justify-content: center; align-items: center; color: white; }
+
+        /* ✨ Space Background */
+        #stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+
+        .screen { position: relative; z-index: 10; text-align: center; display: none; flex-direction: column; align-items: center; width: 95%; max-width: 900px; animation: fadeIn 0.8s ease; }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* 🎁 Cute Animated Gift Box */
+        .gift-container { position: relative; width: 150px; height: 150px; margin: 50px auto; cursor: pointer; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0);} 40% {transform: translateY(-20px);} 60% {transform: translateY(-10px);} }
+        
+        .box-body { width: 100%; height: 100%; background: #ff4d6d; border-radius: 15px; position: relative; box-shadow: 0 15px 30px rgba(255, 77, 109, 0.5); }
+        .box-body::after { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 30px; height: 100%; background: #ffeb3b; } /* ริบบิ้นแนวตั้ง */
+        
+        .box-lid { position: absolute; width: 110%; height: 40px; background: #ff758c; top: -15px; left: -5%; border-radius: 10px; z-index: 2; transition: 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275); box-shadow: 0 5px 10px rgba(0,0,0,0.2); }
+        .box-lid::after { content: '🎀'; position: absolute; top: -35px; left: 50%; transform: translateX(-50%); font-size: 50px; }
+        
+        .gift-container.open .box-lid { transform: translateY(-120px) rotate(-20px); opacity: 0; }
+        .gift-container.open { animation: none; transform: scale(1.2); transition: 0.5s; }
+
+        /* 🧩 Game UI */
+        .game-ui { display: flex; justify-content: space-between; width: 100%; margin-bottom: 15px; padding: 10px 20px; background: var(--glass); border-radius: 20px; font-weight: 600; border: 1px solid rgba(255,255,255,0.1); }
+        .images-grid { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        .img-box { position: relative; width: 45%; min-width: 300px; border: 4px solid white; border-radius: 20px; overflow: hidden; cursor: crosshair; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .img-box img { width: 100%; display: block; }
+        
+        .found-circle { position: absolute; width: 50px; height: 50px; border: 4px solid #00ff00; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; box-shadow: 0 0 15px #00ff00; animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes pop { from { transform: translate(-50%, -50%) scale(0); } to { transform: translate(-50%, -50%) scale(1); } }
+
+        /* 💬 Cheer Message */
+        #cheer-msg { position: fixed; top: 15%; left: 50%; transform: translateX(-50%); font-family: 'Caveat'; font-size: 3.5rem; color: #ffeb3b; text-shadow: 0 0 20px rgba(255,235,59,0.8); pointer-events: none; opacity: 0; transition: 0.5s; z-index: 100; }
+
+        /* 📸 Final Screen */
+        .glass-card { background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); padding: 30px; border-radius: 40px; border: 1px solid rgba(255,255,255,0.2); width: 100%; max-width: 400px; }
+        .qr-frame { background: white; padding: 10px; border-radius: 20px; display: inline-block; margin: 15px 0; }
+        .qr-frame img { width: 100%; max-width: 250px; display: block; }
+
+        .btn { background: linear-gradient(45deg, var(--pink), var(--accent)); color: white; border: none; padding: 12px 40px; border-radius: 30px; font-weight: 600; cursor: pointer; margin-top: 15px; transition: 0.3s; }
+        input { padding: 15px; border-radius: 15px; border: 1px solid rgba(255,255,255,0.3); text-align: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); color: white; outline: none; margin-bottom: 10px; }
+        
+        /* --- 💌 Love Letter Overlay --- */
+        .letter-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); z-index: 1000;
+        display: none; justify-content: center; align-items: center;
+        backdrop-filter: blur(10px);
+}
+
+        .letter-paper {
+        background: #fff9f1; /* สีเหมือนกระดาษถนอมสายตา */
+        width: 85%; max-width: 450px; height: 70vh;
+    border-radius: 20px; padding: 30px;
+    position: relative; box-shadow: 0 10px 50px rgba(0,0,0,0.5);
+    overflow-y: auto; /* เลื่อนอ่านได้ */
+    color: #4a3427; /* สีตัวอักษรน้ำตาลเข้มให้เหมือนเขียนจดหมาย */
+    text-align: left;
+}
+
+/* ฟอนต์น่ารักๆ สำหรับจดหมาย */
+.letter-content {
+    font-family: 'Prompt', sans-serif; /* หรือใช้ 'Caveat' ถ้าอยากได้แนวตัวเขียน */
+    line-height: 1.8; font-size: 1.1rem;
+    white-space: pre-wrap; /* รักษาการเว้นวรรคและการขึ้นบรรทัดใหม่ */
+}
+
+.close-letter {
+    position: sticky; top: -10px; float: right;
+    background: var(--pink); border: none; color: white;
+    width: 30px; height: 30px; border-radius: 50%;
+    cursor: pointer; font-weight: bold;
+}
+
+/* ปุ่มกดอ่านความในใจ */
+.btn-confession {
+    background: #ffffff; color: var(--pink);
+    border: 2px solid var(--pink); padding: 8px 20px;
+    border-radius: 20px; font-weight: 600; cursor: pointer;
+    margin: 10px 0; transition: 0.3s;
+}
+.btn-confession:hover { background: var(--pink); color: white; }
+    </style>
+
+</head>
+<body>
+
+    <canvas id="stars"></canvas>
+    <div id="cheer-msg">เก่งที่สุดเลยแฟนใครเนี่ย! 😍</div>
+    
+    <audio id="bg-music" loop>
+        <source src="sweet-music.mp3" type="audio/mpeg">
+    </audio>
+
+    <div id="screen-1" class="screen active">
+        <h1 style="font-family: 'Caveat'; font-size: 3.5rem; margin-bottom: 10px;">For My Girl ✨</h1>
+        <p>มีของขวัญมาให้ จิ้มที่กล่องสิ!</p>
+        <div class="gift-container" id="gift-box" onclick="openGift()">
+            <div class="box-lid"></div>
+            <div class="box-body"></div>
+        </div>
+    </div>
+
+    <div id="screen-2" class="screen">
+        <div class="glass-card">
+            <h2 style="font-family: 'Caveat'; font-size: 2.5rem; margin:0;">One more step...</h2>
+            <p>ใส่รหัสลับของเราหน่อย 🔒</p>
+            <input type="password" id="passInput" placeholder="รหัสคืออะไรน้า..." maxlength="4">
+            <br>
+            <button class="btn" onclick="checkPass()">ยืนยันความรัก</button>
+        </div>
+    </div>
+
+    <div id="screen-3" class="screen">
+        <div class="game-ui">
+            <div>ด่าน: <span id="lv-txt">1</span>/2</div>
+            <div style="color: #ff85a1;">⏳ <span id="timer">150</span>s</div>
+            <div>พบ: <span id="found-txt">0</span>/5</div>
+        </div>
+        <div class="images-grid">
+            <div class="img-box"><img id="img-true" src=""></div>
+            <div class="img-box" onclick="handleGameClick(event)">
+                <img id="img-diff" src="">
+                <div id="marker-holder"></div>
+            </div>
+        </div>
+        <p style="margin-top:10px; font-size:0.9rem;">หาจุดที่ต่างกัน 5 จุดในรูปขวามือนะคนเก่ง!</p>
+    </div>
+
+    <div id="screen-4" class="screen">
+    <div class="glass-card">
+        <h1 style="font-family: 'Caveat'; font-size: 2.8rem; margin:0; color: #ffafbd;">Happy 1st Month!</h1>
+        
+        <div style="display:flex; justify-content:center; gap:10px; margin:20px 0;">
+            <img src="photo_fan.jpg" style="width:100px; height:100px; border-radius:20px; object-fit:cover; border:2px solid white; transform: rotate(-5deg);">
+            <img src="photo_me.jpg" style="width:100px; height:100px; border-radius:20px; object-fit:cover; border:2px solid white; transform: rotate(5deg);">
+        </div>
+
+        <button class="btn-confession" onclick="openLetter()">อ่านความในใจของเค้า 💌</button>
+
+        <p style="font-size: 0.9rem; line-height: 1.5; color: #ddd;">
+            "ขอบคุณที่เป็นรอยยิ้มให้กันในทุกวันนะ<br>สแกนหัวใจดวงนี้เพื่อไปต่อสิครับ..."
+        </p>
+
+        <div class="qr-frame">
+            <img src="card-qrcode.png" alt="Love QR Code">
+        </div>
+    </div>
+</div>
+
+<div id="letter-overlay" class="letter-overlay">
+    <div class="letter-paper">
+        <button class="close-letter" onclick="closeLetter()">✕</button>
+        <div class="letter-content" id="letter-text">
+ถึง สโนที่รัก...
+ถึงสโนที่เป็นแฟนเค้าที่สุดแสนจะน่ารัก ช่วงนี้เค้ารู้สึกว่าเค้าทำผิด เค้าทำให้เธอไม่โอเค ทำให้เธอนอย หลายเรื่องมากเลย
+ไม่ว่าจะเป็นเรื่องผู้หญิงเอยอะไรเอย อยากจะทำให้อ้วนสบายใจมากก แต่อาจจะทำได้แค่นี้จริงๆงะ บางทีเค้าเหมือนไม่รักอ้วนนะ 
+แต่โคตรจะรักเลยอะ ในด้านนิสัย หน้าตา ธุรกิจ ความพยายามในด้านต่างๆ ไม่ต้องนอยในโชคชะตาตัวเองหรือนอยอะไรมากมายนะ
+เพราะยังไง เค้าก็ยังอยู่ข้างๆอ้วนเหมือนเดิมค่ะ เค้าไม่ไปไหนหร่อก ไม่ต้องกลัวเค้าเบื่อ กลัวเค้าคิดว่าอ้วนงี่เง่า
+เค้าบอกเลยว่า ไม่เลยนะ ถ้ามีอะไรอีกเดะเค้าไปบอกในสายนะคะ มีอะไรก็พูดกันตรงๆเหมือนเดิมเลยค่ะ 
+        </div>
+    </div>
+</div>
+
+    <script>
+        // --- 🌌 Star Field ---
+        const canvas = document.getElementById('stars');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+        window.onresize = resize; resize();
+        for(let i=0; i<150; i++) stars.push({x: Math.random()*canvas.width, y: Math.random()*canvas.height, s: Math.random()*2, v: Math.random()*0.5+0.1});
+        function drawStars() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            ctx.fillStyle = "white";
+            stars.forEach(s => { s.y -= s.v; if(s.y<0) s.y=canvas.height; ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, Math.PI*2); ctx.fill(); });
+            requestAnimationFrame(drawStars);
+        }
+        drawStars();
+
+        // --- 🎮 Game Data ---
+        let currentLv = 0;
+        let foundInLv = 0;
+        let timer = 150;
+        let timerInt;
+        const music = document.getElementById('bg-music');
+
+        // พิกัดปรับให้รัศมีกว้างขึ้น (จิ้มง่าย)
+        const levels = [
+            { t: '1_true.jpg', d: '1_diff.jpg', pts: [{x:74,y:31},{x:50,y:45},{x:67,y:66},{x:7,y:31},{x:92,y:95}] },
+            { t: '2_true.jpg', d: '2_diff.jpg', pts: [{x:23,y:48},{x:47,y:48},{x:40,y:68},{x:95,y:95},{x:10,y:76}] }
+        ];
+
+        function openGift() {
+            music.play().catch(e => console.log("Music ready after interaction"));
+            document.getElementById('gift-box').classList.add('open');
+            setTimeout(() => next(2), 1000);
+        }
+
+        function checkPass() {
+            if(document.getElementById('passInput').value === "1234") next(3);
+            else alert("รหัสผิดน้า ลองใหม่นะคะ 🥺");
+        }
+
+        function next(id) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById('screen-'+id).classList.add('active');
+            if(id === 3) startTimer();
+        }
+
+        function startTimer() {
+            loadLevel();
+            timerInt = setInterval(() => {
+                timer--;
+                document.getElementById('timer').innerText = timer;
+                if(timer <= 0) { clearInterval(timerInt); alert("หมดเวลา! สู้ใหม่นะคนเก่ง"); location.reload(); }
+            }, 1000);
+        }
+
+        function loadLevel() {
+            const lv = levels[currentLv];
+            document.getElementById('img-true').src = lv.t;
+            document.getElementById('img-diff').src = lv.d;
+            document.getElementById('lv-txt').innerText = currentLv + 1;
+            document.getElementById('found-txt').innerText = 0;
+            document.getElementById('marker-holder').innerHTML = '';
+            foundInLv = 0;
+            lv.pts.forEach(p => p.found = false);
+        }
+
+        function handleGameClick(e) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const px = ((e.clientX - rect.left) / rect.width) * 100;
+            const py = ((e.clientY - rect.top) / rect.height) * 100;
+
+            const lv = levels[currentLv];
+            lv.pts.forEach(p => {
+                // รัศมีกว้าง 15% จิ้มยังไงก็โดน!
+                if(!p.found && Math.abs(px - p.x) < 15 && Math.abs(py - p.y) < 15) {
+                    p.found = true;
+                    foundInLv++;
+                    document.getElementById('found-txt').innerText = foundInLv;
+                    addMarker(p.x, p.y);
+                    if(foundInLv === 5) {
+                        showCheer();
+                        setTimeout(() => {
+                            currentLv++;
+                            if(currentLv < levels.length) loadLevel();
+                            else { clearInterval(timerInt); next(4); }
+                        }, 1500);
+                    }
+                }
+            });
+        }
+
+        function addMarker(x, y) {
+            const m = document.createElement('div');
+            m.className = 'found-circle';
+            m.style.left = x + '%'; m.style.top = y + '%';
+            document.getElementById('marker-holder').appendChild(m);
+        }
+
+        function showCheer() {
+            const msgs = ["ผ่านแล้ว! แฟนเก่งที่สุดดด ❤️", "โห ตาไวมาก ยอมเลยครับ! 🔥", "ด่านสุดท้ายแล้ว สู้ๆ นะ!"];
+            const div = document.getElementById('cheer-msg');
+            div.innerText = msgs[currentLv];
+            div.style.opacity = '1';
+            setTimeout(() => div.style.opacity = '0', 1300);
+        }
+        function openLetter() {
+    document.getElementById('letter-overlay').style.display = 'flex';
+    // หยุดดาวชั่วคราวถ้าอยากให้โฟกัสที่จดหมาย (ทางเลือก)
+}
+
+function closeLetter() {
+    document.getElementById('letter-overlay').style.display = 'none';
+}
+    </script>
+</body>
+</html>
